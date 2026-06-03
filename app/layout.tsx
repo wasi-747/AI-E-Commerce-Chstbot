@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import CartDrawer from "@/components/CartDrawer";
+import Toast from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "TechDojo Store",
-  description: "Your favorite e-commerce store",
+  title: "TechDojo Store — Premium Essentials",
+  description: "Thoughtfully crafted premium clothing — T-shirts & Pants for everyday excellence.",
 };
 
 export default function RootLayout({
@@ -27,11 +18,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">
+      <body className="font-sans antialiased bg-white text-slate-900">
         <CartProvider>
           <Navbar />
+          <CartDrawer />
+          <Toast />
           {children}
         </CartProvider>
       </body>

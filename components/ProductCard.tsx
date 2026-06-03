@@ -3,6 +3,7 @@
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useState } from "react";
+import Link from "next/link";
 
 interface Product {
   _id: string;
@@ -28,6 +29,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>("M");
   const [quantity, setQuantity] = useState<number>(1);
   const [isAdding, setIsAdding] = useState(false);
+  const [addedFeedback, setAddedFeedback] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const sizes = ["S", "M", "L", "XL", "XXL"] as const;
 
@@ -37,6 +40,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       await addToCart(product._id, selectedSize, quantity);
       setQuantity(1);
       setSelectedSize("M");
+      setAddedFeedback(true);
+      setTimeout(() => setAddedFeedback(false), 2000);
     } catch (err) {
       console.error("Failed to add to cart:", err);
     } finally {
@@ -44,119 +49,147 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const categoryStyles = {
-    pants: "bg-indigo-100 text-indigo-800",
-    "t-shirts": "bg-purple-100 text-purple-800",
-  };
-
-  const badgeStyle =
-    categoryStyles[product.category as keyof typeof categoryStyles] ||
-    "bg-gray-100 text-gray-800";
+  const currentStock =
+    product.inventory[selectedSize as keyof typeof product.inventory];
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+    <div className="group flex flex-col bg-white border border-slate-200 hover:border-slate-400 transition-colors duration-300">
       {/* Product Image */}
-      <div className="relative w-full h-64 bg-gray-200">
-        {product.imageUrl ? (
+      <Link
+        href={`/product/${product._id}`}
+        className="relative w-full aspect-[3/4] bg-slate-105 overflow-hidden block"
+      >
+        {product.imageUrl && !imageError ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-in-out"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600">
-            No Image
+          <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center gap-2">
+            <svg
+              className="w-8 h-8 text-slate-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M6.75 21h10.5A2.25 2.25 0 0019.5 18.75V6.75A2.25 2.25 0 0017.25 4.5H6.75A2.25 2.25 0 004.5 6.75v12A2.25 2.25 0 006.75 21z"
+              />
+            </svg>
+            <p className="text-xs tracking-widest uppercase text-slate-400">
+              Image unavailable
+            </p>
           </div>
         )}
-      </div>
+
+        {/* Out of stock overlay */}
+        {currentStock === 0 && (
+          <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+            <span className="text-[10px] tracking-widest uppercase text-slate-500 border border-slate-300 px-3 py-1.5 bg-white">
+              Sold Out
+            </span>
+          </div>
+        )}
+      </Link>
 
       {/* Product Info */}
       <div className="p-4 flex flex-col flex-grow">
-        {/* Name and Category */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {product.name}
-        </h3>
-        <div className="mb-3">
-          <span
-            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${badgeStyle}`}
-          >
-            {product.category}
-          </span>
-        </div>
+        {/* Category */}
+        <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-1.5">
+          {product.category}
+        </p>
+
+        {/* Name */}
+        <Link href={`/product/${product._id}`} className="hover:text-slate-650 transition-colors">
+          <h3 className="text-sm font-medium text-slate-900 leading-snug mb-3 hover:underline">
+            {product.name}
+          </h3>
+        </Link>
 
         {/* Price */}
-        <p className="text-2xl font-bold text-blue-600 mb-4">
-          ৳{product.price.toFixed(2)}
+        <p className="text-sm text-slate-900 font-semibold mb-5 tracking-wide">
+          ৳{product.price.toLocaleString("en-BD")}
         </p>
 
         {/* Size Selector */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-2">
             Size
-          </label>
-          <div className="flex gap-2 flex-wrap">
-            {sizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => setSelectedSize(size)}
-                disabled={product.inventory[size] === 0}
-                className={`px-3 py-2 rounded border text-sm font-medium transition-colors ${
-                  selectedSize === size
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : product.inventory[size] === 0
-                      ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                      : "bg-white text-gray-900 border-gray-300 hover:border-blue-600"
-                }`}
-              >
-                {size}
-              </button>
-            ))}
+          </p>
+          <div className="flex gap-1.5 flex-wrap">
+            {sizes.map((size) => {
+              const isOutOfStock = product.inventory[size] === 0;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setSelectedSize(size)}
+                  disabled={isOutOfStock}
+                  className={`w-9 h-9 text-xs border transition-colors duration-150 ${
+                    selectedSize === size
+                      ? "bg-black text-white border-black"
+                      : isOutOfStock
+                        ? "bg-white text-slate-300 border-slate-200 cursor-not-allowed line-through"
+                        : "bg-white text-slate-700 border-slate-300 hover:border-slate-900 hover:text-slate-900"
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Quantity Selector */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quantity
-          </label>
+        {/* Quantity */}
+        <div className="mb-5">
+          <p className="text-[9px] uppercase tracking-widest text-slate-400 mb-2">
+            Qty
+          </p>
           <input
             type="number"
             min="1"
-            max={
-              product.inventory[selectedSize as keyof typeof product.inventory]
-            }
+            max={currentStock || 1}
             value={quantity}
             onChange={(e) =>
               setQuantity(Math.max(1, parseInt(e.target.value) || 1))
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+            className="w-20 px-3 py-2 bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-slate-900 transition-colors"
           />
         </div>
-
-        {/* Stock Info */}
-        <p className="text-xs text-gray-500 mb-4">
-          {product.inventory[selectedSize as keyof typeof product.inventory]} in
-          stock
-        </p>
 
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={
-            isAdding ||
-            loading ||
-            product.inventory[
-              selectedSize as keyof typeof product.inventory
-            ] === 0
-          }
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+          disabled={isAdding || loading || currentStock === 0}
+          className={`w-full py-3 text-xs tracking-widest uppercase font-medium transition-colors duration-200 mt-auto disabled:cursor-not-allowed ${
+            addedFeedback
+              ? "bg-slate-700 text-white"
+              : currentStock === 0
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "bg-black text-white hover:bg-slate-800 active:bg-slate-700"
+          }`}
         >
-          {isAdding ? "Adding..." : "Add to Cart"}
+          {isAdding
+            ? "Adding..."
+            : addedFeedback
+              ? "✓ Added"
+              : currentStock === 0
+                ? "Sold Out"
+                : "Add to Bag"}
         </button>
 
-        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+        {error && (
+          <p className="text-red-500 text-[10px] mt-2 tracking-wide text-center">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
