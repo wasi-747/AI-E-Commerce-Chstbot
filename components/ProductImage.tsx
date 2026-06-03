@@ -8,12 +8,18 @@ interface ProductImageProps {
   name: string;
 }
 
+const isValidImageUrl = (url?: string) => {
+  if (!url) return false;
+  if (url === "undefined" || url === "null") return false;
+  return url.startsWith("http") || url.startsWith("/");
+};
+
 export default function ProductImage({ imageUrl, name }: ProductImageProps) {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div className="relative w-full aspect-[3/4] bg-slate-105 border border-slate-200 overflow-hidden">
-      {imageUrl && !imageError ? (
+      {isValidImageUrl(imageUrl) && !imageError ? (
         <Image
           src={imageUrl}
           alt={name}

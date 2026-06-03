@@ -22,9 +22,16 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+const isValidImageUrl = (url?: string) => {
+  if (!url) return false;
+  if (url === "undefined" || url === "null") return false;
+  return url.startsWith("http") || url.startsWith("/");
+};
+
+export default function ProductCard({ product, priority = false }: ProductCardProps) {
   const { addToCart, loading, error } = useCart();
   const [selectedSize, setSelectedSize] = useState<string>("M");
   const [quantity, setQuantity] = useState<number>(1);
@@ -59,11 +66,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         href={`/product/${product._id}`}
         className="relative w-full aspect-[3/4] bg-slate-105 overflow-hidden block"
       >
-        {product.imageUrl && !imageError ? (
+        {isValidImageUrl(product.imageUrl) && !imageError ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
+            priority={priority}
             className="object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-in-out"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             onError={() => setImageError(true)}

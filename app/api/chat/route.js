@@ -1,40 +1,24 @@
-import { NextResponse } from "next/server";
+import { streamText, convertToModelMessages } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
-export async function POST(request) {
-  try {
-    const body = await request.json();
+export const dynamic = 'force-dynamic';
 
-    const { message, userId } = body;
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+});
 
-    if (!message || !userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields: message, userId",
-        },
-        { status: 400 },
-      );
-    }
+export async function POST(req) {
+  const { messages } = await req.json();
 
-    // TODO: Connect to Local LLM (Ollama/Llama-3) via RTX 5070 for intent extraction
+  // Convert UIMessages (with parts) from frontend to ModelMessages (with content) for streamText
+  const modelMessages = await convertToModelMessages(messages);
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "AI integration pending - Waiting for local GPU setup",
-        userId,
-        userMessage: message,
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Error processing chat request:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to process chat request",
-      },
-      { status: 500 },
-    );
-  }
+  const result = await streamText({
+    model: groq('llama-3.1-8b-instant'),
+    system: "You are a luxury fashion stylist for an elite boutique. Provide minimalist, professional, and elegant style advice. Keep responses short and formatting clean.",
+    messages: modelMessages,
+  });
+
+  return result.toUIMessageStreamResponse();
 }

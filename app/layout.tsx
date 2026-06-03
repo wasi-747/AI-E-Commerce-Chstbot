@@ -4,6 +4,7 @@ import { CartProvider } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import Toast from "@/components/Toast";
+import ChatWidget from "@/components/ChatWidget";
 
 export const metadata: Metadata = {
   title: "TechDojo Store — Premium Essentials",
@@ -26,6 +27,7 @@ export default function RootLayout({
           <CartDrawer />
           <Toast />
           {children}
+          <ChatWidget />
         </CartProvider>
       </body>
     </html>
