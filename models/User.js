@@ -24,10 +24,13 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    unique: true,
+    match: /^\S+@\S+\.\S+$/,
   },
   password: {
     type: String,
     required: true,
+    select: false,
   },
   chatHistory: {
     type: [chatHistorySchema],

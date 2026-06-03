@@ -9,10 +9,12 @@ const cartItemSchema = new mongoose.Schema({
   size: {
     type: String,
     required: true,
+    enum: ["S", "M", "L", "XL", "XXL"],
   },
   quantity: {
     type: Number,
     required: true,
+    min: 1,
   },
 });
 
