@@ -1,113 +1,84 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
 
-// Dummy userId for demonstration purposes
-const DUMMY_USER_ID = "67fb00000000000000000001";
-
 export async function GET(request) {
   try {
-    await dbConnect();
-
-    const cart = await Cart.findOne({ userId: DUMMY_USER_ID }).populate(
-      "items.productId",
-    );
-
-    if (!cart) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: { userId: DUMMY_USER_ID, items: [] },
-        },
-        { status: 200 },
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: true, data: { items: [] } }, { status: 200 });
     }
 
+    await dbConnect();
+    const cart = await Cart.findOne({ userId: session.user.id }).populate("items.productId");
+
     return NextResponse.json(
-      {
-        success: true,
-        data: cart,
-      },
-      { status: 200 },
+      { success: true, data: cart || { userId: session.user.id, items: [] } },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error fetching cart:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to fetch cart",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
     await dbConnect();
-
-    const body = await request.json();
-
-    const { productId, size, quantity } = body;
+    const { productId, size, quantity } = await request.json();
 
     if (!productId || !size || !quantity) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields: productId, size, quantity",
-        },
-        { status: 400 },
+        { success: false, error: "Missing required fields: productId, size, quantity" },
+        { status: 400 }
       );
     }
-
     if (!["S", "M", "L", "XL", "XXL"].includes(size)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid size. Must be one of: S, M, L, XL, XXL",
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "Invalid size." }, { status: 400 });
     }
 
-    let cart = await Cart.findOne({ userId: DUMMY_USER_ID });
+    let cart = await Cart.findOne({ userId: session.user.id });
 
     if (!cart) {
-      cart = new Cart({
-        userId: DUMMY_USER_ID,
-        items: [{ productId, size, quantity }],
-      });
+      cart = new Cart({ userId: session.user.id, items: [{ productId, size, quantity }] });
     } else {
-      const existingItem = cart.items.find(
-        (item) => item.productId.toString() === productId && item.size === size,
+      const existing = cart.items.find(
+        (item) => item.productId.toString() === productId && item.size === size
       );
-
-      if (existingItem) {
-        existingItem.quantity += quantity;
+      if (existing) {
+        existing.quantity += quantity;
       } else {
         cart.items.push({ productId, size, quantity });
       }
     }
 
     await cart.save();
+    const populated = await cart.populate("items.productId");
 
-    const populatedCart = await cart.populate("items.productId");
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: populatedCart,
-      },
-      { status: 201 },
-    );
+    return NextResponse.json({ success: true, data: populated }, { status: 201 });
   } catch (error) {
-    console.error("Error adding item to cart:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to add item to cart",
-      },
-      { status: 500 },
-    );
+    console.error("Error adding to cart:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+    await dbConnect();
+    await Cart.deleteOne({ userId: session.user.id });
+    return NextResponse.json({ success: true, message: "Cart cleared." }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

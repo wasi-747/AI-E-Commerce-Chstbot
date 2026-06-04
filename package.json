@@ -11,16 +11,19 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/groq": "^3.0.39",
     "@ai-sdk/openai": "^3.0.67",
-    "@ai-sdk/react": "^3.0.197",
-    "ai": "^6.0.195",
+    "@ai-sdk/react": "^3.0.198",
+    "ai": "^6.0.196",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.17.0",
     "mongoose": "^9.6.3",
     "next": "16.2.7",
     "next-auth": "^4.24.14",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

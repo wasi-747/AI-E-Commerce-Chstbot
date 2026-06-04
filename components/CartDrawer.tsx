@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
-import { X, Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { X, Trash2, Minus, Plus, ShoppingBag, Loader2, CheckCircle2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 
@@ -37,9 +37,30 @@ export default function CartDrawer() {
     closeDrawer,
     removeFromCart,
     updateQuantity,
+    fetchCart,
     itemCount,
     subtotal,
   } = useCart();
+
+  const [checkingOut, setCheckingOut]     = useState(false);
+  const [orderSuccess, setOrderSuccess]   = useState<string | null>(null);
+  const [orderError, setOrderError]       = useState<string | null>(null);
+
+  const handleCheckout = async () => {
+    setCheckingOut(true);
+    setOrderError(null);
+    try {
+      const res  = await fetch("/api/orders", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { setOrderError(data.error || "Checkout failed."); return; }
+      setOrderSuccess(data.data?.orderNumber || "Confirmed");
+      await fetchCart();
+    } catch {
+      setOrderError("Something went wrong. Please try again.");
+    } finally {
+      setCheckingOut(false);
+    }
+  };
 
   // Close on Escape key
   const handleKeyDown = useCallback(
@@ -245,13 +266,38 @@ export default function CartDrawer() {
               </div>
             </div>
 
+            {/* Order Success */}
+            {orderSuccess && (
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+                <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">Order Placed!</p>
+                  <p className="text-[10px] text-emerald-600 font-mono">{orderSuccess}</p>
+                </div>
+              </div>
+            )}
+            {orderError && (
+              <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 px-3 py-2">{orderError}</p>
+            )}
+
             {/* Buttons */}
-            <button
-              className="w-full bg-black text-white text-[11px] uppercase tracking-[0.25em] py-4 hover:bg-slate-800 active:bg-slate-700 transition-colors duration-200"
-              onClick={() => alert("Checkout coming soon — AI chatbot integration")}
-            >
-              Checkout
-            </button>
+            {!orderSuccess ? (
+              <button
+                onClick={handleCheckout}
+                disabled={checkingOut}
+                className="w-full bg-black text-white text-[11px] uppercase tracking-[0.25em] py-4 hover:bg-slate-800 active:bg-slate-700 transition-colors duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {checkingOut && <Loader2 size={13} className="animate-spin" />}
+                {checkingOut ? "Placing Order…" : "Checkout"}
+              </button>
+            ) : (
+              <button
+                onClick={() => { setOrderSuccess(null); closeDrawer(); }}
+                className="w-full bg-emerald-600 text-white text-[11px] uppercase tracking-[0.25em] py-4 hover:bg-emerald-700 transition-colors"
+              >
+                ✓ Done
+              </button>
+            )}
             <button
               onClick={closeDrawer}
               className="w-full border border-slate-300 text-slate-700 text-[11px] uppercase tracking-[0.25em] py-3.5 hover:border-slate-900 hover:text-slate-900 transition-colors duration-200"
