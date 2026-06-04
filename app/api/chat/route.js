@@ -1,4 +1,4 @@
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -38,17 +38,22 @@ export async function POST(req) {
     const reqBody = await req.json();
     console.log("POST /api/chat reqBody:", reqBody);
     const uiMessages = Array.isArray(reqBody.messages) ? reqBody.messages : [];
-    const modelMessages = await convertToModelMessages(uiMessages);
 
-    // ── 3. Slice messages to save tokens while keeping raw objects ───────────
-    const recentMessages = modelMessages.slice(-6);
+    // ── 3. Slice UI messages to save tokens while keeping tool-call/result pairs intact ───
+    const recentUiMessages = uiMessages.slice(-6);
+    const modelMessages = await convertToModelMessages(recentUiMessages);
 
     // ── 3b. Ensure DB connection for chat persistence ───────────────────────
     await dbConnect();
 
     // ── 4. System prompt ───────────────────────────────────────────────────
     const systemPrompt =
-      "You are a luxury fashion stylist. ALWAYS use the 'showProducts' tool when the user asks for clothes. REQUIRED: You MUST extract the clothing type and pass it to the 'query' parameter. If the user asks about their cart, use the 'viewCart' tool.";
+      "You are an elite luxury fashion stylist for TechDojo Store. BE EXTREMELY CONCISE. Do not act like a generic chatty AI. Answer directly and elegantly.\n\n" +
+      "GUIDELINES:\n" +
+      "- Search the catalog for clothes when requested.\n" +
+      "- View the shopping cart when asked about the cart or orders.\n" +
+      "- For checkout or cart updates, perform the requested actions directly.\n" +
+      "- For casual chat or non-shopping queries, reply politely in 1-2 short sentences without calling tools.";
 
     // ── 5. Inject userId into tools that need it ───────────────────────────
     // We create tool wrappers that bind userId from the session so the LLM
@@ -67,9 +72,10 @@ export async function POST(req) {
       result = await streamText({
         model: groq("llama-3.3-70b-versatile"),
         system: systemPrompt,
-        messages: recentMessages,
+        messages: modelMessages,
         tools: boundTools,
-        maxSteps: 3,
+        temperature: 0,
+        stopWhen: stepCountIs(3),
         onFinish: async ({ text }) => {
           try {
             const lastUserMessage = [...uiMessages]
