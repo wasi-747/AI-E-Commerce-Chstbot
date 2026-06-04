@@ -22,11 +22,16 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-white text-slate-900">
         <SessionProviderWrapper>
           <CartProvider>
-            <Navbar />
-            <CartDrawer />
-            <Toast />
-            {children}
+            {/* AI Stylist Sidebar — fixed left panel */}
             <ChatWidget />
+
+            {/* Main content — offset by sidebar width (w-80 = 320px) */}
+            <div className="ml-80">
+              <Navbar />
+              <CartDrawer />
+              <Toast />
+              {children}
+            </div>
           </CartProvider>
         </SessionProviderWrapper>
       </body>

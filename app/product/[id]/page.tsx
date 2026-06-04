@@ -3,6 +3,9 @@ import ProductImage from "@/components/ProductImage";
 import ProductDetailsActions from "@/components/ProductDetailsActions";
 import ProductCard from "@/components/ProductCard";
 
+import { dbConnect } from "@/lib/mongodb";
+import ProductModel from "@/models/Product";
+
 interface Product {
   _id: string;
   name: string;
@@ -20,16 +23,10 @@ interface Product {
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`http://localhost:3000/api/products/${id}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const data = await res.json();
-    return data.data || null;
+    await dbConnect();
+    const product = await ProductModel.findById(id).lean();
+    if (!product) return null;
+    return JSON.parse(JSON.stringify(product));
   } catch (error) {
     console.error(`Error fetching product with ID ${id}:`, error);
     return null;
@@ -38,21 +35,14 @@ async function getProduct(id: string): Promise<Product | null> {
 
 async function getRelatedProducts(category: string, currentId: string): Promise<Product[]> {
   try {
-    const res = await fetch(`http://localhost:3000/api/products`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return [];
-    }
-
-    const data = await res.json();
-    const allProducts: Product[] = data.data || [];
-
-    // Filter by same category, and exclude current product
-    return allProducts
-      .filter((p) => p.category === category && p._id !== currentId)
-      .slice(0, 4);
+    await dbConnect();
+    const related = await ProductModel.find({
+      category,
+      _id: { $ne: currentId }
+    })
+      .limit(4)
+      .lean();
+    return JSON.parse(JSON.stringify(related)) || [];
   } catch (error) {
     console.error("Error fetching related products:", error);
     return [];

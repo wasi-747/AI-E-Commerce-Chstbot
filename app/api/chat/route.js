@@ -1,9 +1,16 @@
-import { convertToModelMessages, streamText, stepCountIs } from "ai";
+import { convertToModelMessages, streamText } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Cart from "@/models/Cart";
+import {
+  buildSystemPrompt,
+  buildCatalogSummary,
+  buildCartSummary,
+} from "@/lib/systemPrompt";
 import {
   browseProducts,
   addToCart,
@@ -46,14 +53,18 @@ export async function POST(req) {
     // ── 3b. Ensure DB connection for chat persistence ───────────────────────
     await dbConnect();
 
-    // ── 4. System prompt ───────────────────────────────────────────────────
-    const systemPrompt =
-      "You are an elite luxury fashion stylist for TechDojo Store. BE EXTREMELY CONCISE. Do not act like a generic chatty AI. Answer directly and elegantly.\n\n" +
-      "GUIDELINES:\n" +
-      "- Search the catalog for clothes when requested.\n" +
-      "- View the shopping cart when asked about the cart or orders.\n" +
-      "- For checkout or cart updates, perform the requested actions directly.\n" +
-      "- For casual chat or non-shopping queries, reply politely in 1-2 short sentences without calling tools.";
+    // ── 4. Fetch DB context & build system prompt ──────────────────────────
+    const [products, cart, user] = await Promise.all([
+      Product.find({}).lean(),
+      Cart.findOne({ userId }).populate("items.productId").lean(),
+      User.findById(userId).lean(),
+    ]);
+
+    const catalogSummary = buildCatalogSummary(products);
+    const cartSummary = buildCartSummary(cart?.items || []);
+    const userName = user?.name || "there";
+
+    const systemPrompt = buildSystemPrompt(userName, catalogSummary, cartSummary);
 
     // ── 5. Inject userId into tools that need it ───────────────────────────
     // We create tool wrappers that bind userId from the session so the LLM
@@ -70,12 +81,12 @@ export async function POST(req) {
     let result;
     try {
       result = await streamText({
-        model: groq("llama-3.3-70b-versatile"),
+        model: groq("llama-3.1-8b-instant"),
         system: systemPrompt,
         messages: modelMessages,
         tools: boundTools,
         temperature: 0,
-        stopWhen: stepCountIs(3),
+        maxSteps: 3,
         onFinish: async ({ text }) => {
           try {
             const lastUserMessage = [...uiMessages]

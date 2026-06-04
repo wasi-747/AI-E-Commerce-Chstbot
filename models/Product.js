@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema(
     shortDescription: { type: String, default: "" }, // ≤80 chars — injected into LLM catalog context
     category: {
       type: String,
-      enum: ["t-shirts", "pants"],
+      enum: ["t-shirts", "pants", "accessories", "outerwear", "dresses", "shirts"],
       required: true,
     },
     price: { type: Number, required: true, min: 0 },

@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import ProductCard from "@/components/ProductCard";
 import ProductGridSkeleton from "@/components/Skeletons/ProductGridSkeleton";
 
+import { dbConnect } from "@/lib/mongodb";
+import ProductModel from "@/models/Product";
+
 interface Product {
   _id: string;
   name: string;
@@ -19,16 +22,10 @@ interface Product {
 
 async function getProducts(): Promise<Product[]> {
   try {
-    const res = await fetch("http://localhost:3000/api/products", {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch products");
-    }
-
-    const data = await res.json();
-    return data.data || [];
+    await dbConnect();
+    const products = await ProductModel.find({}).lean();
+    // Convert Mongoose documents to plain JS objects and serialize ObjectIds to strings
+    return JSON.parse(JSON.stringify(products)) || [];
   } catch (error) {
     console.error("Error fetching products:", error);
     return [];
