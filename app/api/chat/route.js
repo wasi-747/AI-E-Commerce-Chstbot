@@ -1,5 +1,6 @@
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import { createGroq } from "@ai-sdk/groq";
+import { createOpenAI } from "@ai-sdk/openai";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
@@ -21,9 +22,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// ── Groq provider (uses Chat Completions natively) ──────────────────────────
+// ── Providers ───────────────────────────────────────────────────────────────
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
+});
+
+const ollama = createOpenAI({
+  baseURL: "http://127.0.0.1:11434/v1",
+  apiKey: "ollama", // Dummy key required by the SDK but ignored by Ollama
 });
 
 export async function POST(req) {
@@ -80,13 +86,20 @@ export async function POST(req) {
     // ── 6. Stream LLM response ─────────────────────────────────────────────
     let result;
     try {
+      const useLocalAi = process.env.USE_LOCAL_AI === "true";
+      const selectedModel = useLocalAi
+        ? ollama.chat(process.env.LOCAL_MODEL || "llama3.1")
+        : groq("llama-3.1-8b-instant");
+
+      console.log(`Using AI Provider: ${useLocalAi ? `Local Ollama (${process.env.LOCAL_MODEL || "llama3.1"})` : "Cloud Groq (llama-3.1-8b-instant)"}`);
+
       result = await streamText({
-        model: groq("llama-3.1-8b-instant"),
+        model: selectedModel,
         system: systemPrompt,
         messages: modelMessages,
         tools: boundTools,
         temperature: 0,
-        maxSteps: 3,
+        stopWhen: stepCountIs(3),
         onFinish: async ({ text }) => {
           try {
             const lastUserMessage = [...uiMessages]
