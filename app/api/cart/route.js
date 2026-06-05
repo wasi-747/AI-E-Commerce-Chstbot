@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
+import Product from "@/models/Product"; // Ensure Product schema is registered
 
 export async function GET(request) {
   try {
