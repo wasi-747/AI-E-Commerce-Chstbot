@@ -1,6 +1,6 @@
 import StoreLayoutWrapper from "@/components/StoreLayoutWrapper";
 
-export default function StoreLayout({
+export default function ProductLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

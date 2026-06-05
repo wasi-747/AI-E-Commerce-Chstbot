@@ -84,7 +84,7 @@ export default async function ProductPage({ params }: PageProps) {
           The piece you are looking for does not exist or has been removed.
         </p>
         <Link
-          href="/"
+          href="/store"
           className="text-[10px] uppercase tracking-widest border border-slate-900 text-slate-900 px-8 py-3 hover:bg-slate-900 hover:text-white transition-colors duration-200"
         >
           Return to Collection
@@ -102,7 +102,7 @@ export default async function ProductPage({ params }: PageProps) {
         <nav className="mb-8" aria-label="Breadcrumb">
           <ol className="flex items-center space-x-2 text-[9px] uppercase tracking-[0.2em]">
             <li>
-              <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
+              <Link href="/store" className="text-slate-400 hover:text-slate-900 transition-colors">
                 Collection
               </Link>
             </li>
@@ -177,7 +177,7 @@ export default async function ProductPage({ params }: PageProps) {
                 Related Pieces
               </h2>
               <Link
-                href="/"
+                href="/store"
                 className="text-[9px] uppercase tracking-widest text-slate-400 hover:text-slate-900 border-b border-transparent hover:border-slate-900 transition-all pb-0.5"
               >
                 View Collection
