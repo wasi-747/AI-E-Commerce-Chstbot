@@ -6,12 +6,14 @@ import Link from "next/link";
 import { ShoppingBag, User, ChevronDown, LogOut } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AuthModal from "@/components/AuthModal";
+import OrdersModal from "@/components/OrdersModal";
 
 export default function Navbar() {
   const { itemCount, openDrawer } = useCart();
   const { data: session, status } = useSession();
   const [authOpen, setAuthOpen]     = useState(false);
   const [dropOpen, setDropOpen]     = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -97,6 +99,13 @@ export default function Navbar() {
                         </p>
                       </div>
                       <button
+                        onClick={() => { setOrdersOpen(true); setDropOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-[11px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors border-b border-slate-100"
+                      >
+                        <ShoppingBag size={12} strokeWidth={1.5} />
+                        My Orders
+                      </button>
+                      <button
                         onClick={() => { signOut({ callbackUrl: "/" }); setDropOpen(false); }}
                         className="w-full flex items-center gap-2 px-4 py-3 text-[11px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                       >
@@ -144,6 +153,7 @@ export default function Navbar() {
       </nav>
 
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      <OrdersModal isOpen={ordersOpen} onClose={() => setOrdersOpen(false)} />
     </>
   );
 }
